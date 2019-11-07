@@ -48,3 +48,4 @@ ipfolder = os.path.join(data_path, 'data')
 # create train dataset 
 opfolder = os.path.join(data_path, 'prepdata', 'train')
 random_crop_batch(ipfolder, opfolder, 'cell_membrane', [img_crop_shape_min, img_crop_shape_max], 20, 100)
+

@@ -19,16 +19,24 @@ import itertools
 
 #%%
 # load image
-path = "/Volumes/LaCie_DataStorage/PerlmutterData/training/cell_membrane/prepdata"
-imgpath = list(paths.list_images(path))
-print(imgpath[0])
+path = "/Volumes/LaCie_DataStorage/PerlmutterData/"
+imgdir = "training/cell_membrane/prepdata"
+imgpath = os.path.join(path, imgdir)
+
+imgpath_all = list(paths.list_images(path))
+print(imgpath_all[0])
 
 #%%
 # set parameters
 seed = 100
 batch_size = 16
 validation_split = 0.1
+training_sample_size = len(imgpath_all)
+IMG_HEIGHT = 256
+IMG_WIDTH = 256
 
+#%% 
+# create argments for data generator
 data_gen_args = dict(
                 featurewise_center=True,
                 featurewise_std_normalization=True,
@@ -51,7 +59,7 @@ label_datagen = ImageDataGenerator(**data_gen_args)
 
 #%%
 train_image_generator = image_datagen.flow_from_directory(
-    os.path.join(path, 'train/images/'),
+    os.path.join(imgpath, 'train/images/'),
     class_mode=None,
     color_mode='grayscale',
     batch_size=batch_size,
@@ -59,7 +67,7 @@ train_image_generator = image_datagen.flow_from_directory(
     seed=seed)
 
 train_label_generator = label_datagen.flow_from_directory(
-    os.path.join(path, 'train/labels'),
+    os.path.join(imgpath, 'train/labels'),
     class_mode=None,
     color_mode='grayscale',
     batch_size=batch_size,
@@ -67,7 +75,7 @@ train_label_generator = label_datagen.flow_from_directory(
     seed=seed)
 
 valid_image_generator = image_datagen.flow_from_directory(
-    os.path.join(path, 'train/images/'),
+    os.path.join(imgpath, 'train/images/'),
     class_mode=None,
     color_mode='grayscale',
     batch_size=batch_size,
@@ -75,7 +83,7 @@ valid_image_generator = image_datagen.flow_from_directory(
     seed=seed)
 
 valid_label_generator = label_datagen.flow_from_directory(
-    os.path.join(path, 'train/labels'),
+    os.path.join(imgpath, 'train/labels'),
     class_mode=None,
     color_mode='grayscale',
     batch_size=batch_size,
@@ -83,20 +91,41 @@ valid_label_generator = label_datagen.flow_from_directory(
     seed=seed)
 
 #%%
+# merge image and label generator
 train_generator = zip(train_image_generator, train_label_generator)
 valid_generator = zip(valid_image_generator, valid_label_generator)
 
 #%%
+# create folder for saving the model
+
+
+#%%
+# training
 from keras.callbacks import ModelCheckpoint
+from datetime import datetime
 
-batch_size = 16
-checkpointer = ModelCheckpoint('model-test-1.h5', verbose=1, save_best_only=True)
+print("Start training")
 
-unetmodel = UNet([256, 256])
+# checkpointer
+# check folder
+if not 'model' in os.listdir(path):
+    os.mkdir(os.path.join(path, 'model'))
+# set up the checkpointer
+checkpointer = ModelCheckpoint('model_' + datetime.now().strftime("%Y_%m_%d_%H_%M") + '.h5', verbose=1, save_best_only=True)
+
+# calculate steps_per_epoch
+steps_per_epoch = training_sample_size * (1-validation_split) // batch_size
+print("Steps per epoch: {}".format(steps_per_epoch))
+
+#%%
+# prepare the model
+unetmodel = UNet([IMG_HEIGHT, IMG_WIDTH])
+
+# train the model
 unetmodel.fit_generator(generator=train_generator, 
                     validation_data = valid_generator,
                     validation_steps = 20,
-                    steps_per_epoch = 2000//batch_size,
+                    steps_per_epoch = steps_per_epoch,
                     epochs = 3, 
                     verbose=1, 
                     callbacks=[checkpointer]
