@@ -14,12 +14,13 @@ from core.models import UNet
 from imutils import paths
 import itertools
 
-%load_ext autoreload
-%autoreload 2
+#%load_ext autoreload
+#%autoreload 2
 
 #%%
-# load image
-path = "/Volumes/LaCie_DataStorage/PerlmutterData/"
+#load image
+#path = "/Volumes/LaCie_DataStorage/PerlmutterData/"
+path = "D:/PerlmutterData/"
 imgdir = "training/cell_membrane/prepdata"
 imgpath = os.path.join(path, imgdir)
 
@@ -111,7 +112,9 @@ print("Start training")
 if not 'model' in os.listdir(path):
     os.mkdir(os.path.join(path, 'model'))
 # set up the checkpointer
-checkpointer = ModelCheckpoint('model_' + datetime.now().strftime("%Y_%m_%d_%H_%M") + '.h5', verbose=1, save_best_only=True)
+
+# model
+checkpointer = ModelCheckpoint('model_' + datetime.now().strftime("%Y_%m_%d_%H_%M") + '.h5', monitor='val_loss', mode='min', verbose=1, save_best_only=True)
 
 # calculate steps_per_epoch
 steps_per_epoch = training_sample_size * (1-validation_split) // batch_size
@@ -126,7 +129,7 @@ unetmodel.fit_generator(generator=train_generator,
                     validation_data = valid_generator,
                     validation_steps = 20,
                     steps_per_epoch = steps_per_epoch,
-                    epochs = 3, 
+                    epochs = 500, 
                     verbose=1, 
                     callbacks=[checkpointer]
                     )
