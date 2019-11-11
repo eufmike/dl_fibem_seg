@@ -1,11 +1,12 @@
 #%%
-from keras.models import Model, Sequential
-from keras.layers import Input, concatenate, Conv2D, Conv2DTranspose, merge, Dropout, Flatten, Dense, Activation, Layer, Reshape, Permute, Lambda
-from keras.layers.convolutional import Convolution3D, MaxPooling3D, ZeroPadding3D
-from keras.layers.convolutional import Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D
-from keras.layers.normalization import BatchNormalization
-from keras.optimizers import Adam, Adadelta
-from keras import backend as K
+from tensorflow import keras
+from tensorflow.python.keras.models import Model, Sequential
+from tensorflow.python.keras.layers import Input, concatenate, Conv2D, Conv2DTranspose, merge, Dropout, Flatten, Dense, Activation, Layer, Reshape, Permute, Lambda
+from tensorflow.python.keras.layers.convolutional import Convolution3D, MaxPooling3D, ZeroPadding3D
+from tensorflow.python.keras.layers.convolutional import Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D
+from tensorflow.python.keras.layers.normalization import BatchNormalization
+from tensorflow.python.keras.optimizers import Adam, Adadelta
+from tensorflow.python.keras import backend as K
 
 def UNet(shape, nClasses=1):
     
