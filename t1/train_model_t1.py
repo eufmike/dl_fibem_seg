@@ -3,11 +3,6 @@
 # %% Change working directory from the workspace root to the ipynb file location. Turn this addition off with the DataScience.changeDirOnImportExport setting
 # ms-python.python added
 import os
-try:
-	os.chdir(os.path.join(os.getcwd(), '../../../../../../var/folders/lx/703nk8wx7vb585ttwyxk_1lr0000gn/T'))
-	print(os.getcwd())
-except:
-	pass
 # %%
 from IPython import get_ipython
 
@@ -32,8 +27,8 @@ from core.models import UNet
 from imutils import paths
 import itertools
 
-get_ipython().run_line_magic('load_ext', 'autoreload')
-get_ipython().run_line_magic('autoreload', '2')
+# get_ipython().run_line_magic('load_ext', 'autoreload')
+# get_ipython().run_line_magic('autoreload', '2')
 
 # %% [markdown]
 # ## Load Training Dataset
@@ -42,10 +37,10 @@ get_ipython().run_line_magic('autoreload', '2')
 # load image
 print("Load Images...")
 # on mac
-# path = "/Volumes/LaCie_DataStorage/PerlmutterData/"
+path = "/Volumes/LaCie_DataStorage/PerlmutterData/"
 
 # on Window PC 
-path = "D:/PerlmutterData/"
+# path = "D:/PerlmutterData/"
 imgdir = "training/cell_membrane/prepdata"
 imgpath = os.path.join(path, imgdir)
 

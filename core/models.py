@@ -1,12 +1,12 @@
 #%%
 from tensorflow import keras
-from tensorflow.python.keras.models import Model, Sequential
-from tensorflow.python.keras.layers import Input, concatenate, Conv2D, Conv2DTranspose, merge, Dropout, Flatten, Dense, Activation, Layer, Reshape, Permute, Lambda
-from tensorflow.python.keras.layers.convolutional import Convolution3D, MaxPooling3D, ZeroPadding3D
-from tensorflow.python.keras.layers.convolutional import Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D
-from tensorflow.python.keras.layers.normalization import BatchNormalization
-from tensorflow.python.keras.optimizers import Adam, Adadelta
-from tensorflow.python.keras import backend as K
+from tensorflow.keras.models import Model, Sequential
+from tensorflow.keras.layers import Input, concatenate, Conv2D, Conv2DTranspose, Dropout, Flatten, Dense, Activation, Layer, Reshape, Permute, Lambda
+from tensorflow.keras.layers import Conv3D, MaxPool3D, ZeroPadding3D
+from tensorflow.keras.layers import Conv2D, MaxPool2D, UpSampling2D, ZeroPadding2D
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.optimizers import Adam, Adadelta
+from tensorflow.keras import backend as K
 
 def UNet(shape, nClasses=1):
     
@@ -22,27 +22,27 @@ def UNet(shape, nClasses=1):
     conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
     print ("conv1 shape:",conv1.shape)
 
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    pool1 = MaxPool2D(pool_size=(2, 2))(conv1)
     print ("pool1 shape:",pool1.shape)
 
     conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
     print ("conv2 shape:",conv2.shape)
     conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv2)
     print ("conv2 shape:",conv2.shape)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    pool2 = MaxPool2D(pool_size=(2, 2))(conv2)
     print ("pool2 shape:",pool2.shape)
 
     conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool2)
     print ("conv3 shape:",conv3.shape)
     conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv3)
     print ("conv3 shape:",conv3.shape)
-    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    pool3 = MaxPool2D(pool_size=(2, 2))(conv3)
     print ("pool3 shape:",pool3.shape)
 
     conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)
     conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
     drop4 = Dropout(0.5)(conv4)
-    pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
+    pool4 = MaxPool2D(pool_size=(2, 2))(drop4)
 
     conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
     conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
