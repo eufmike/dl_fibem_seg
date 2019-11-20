@@ -3,6 +3,9 @@ import numpy as np
 import uuid
 from skimage.io import imread, imsave, imshow
 from PIL import Image, ImageTk
+from typing import Union, Any, List, Tuple
+from tqdm.notebook import trange
+import math
 
 def random_crop(imgs, random_range, seed=None):
     # Note: image_data_format is 'channel_last'
@@ -91,3 +94,132 @@ def random_crop_batch(ipfolder, opfolder, label, random_size_range, crop_per_ima
                 seed += 1
             
             id_count += 1
+            
+def create_crop_idx(img_size, target_size = (256, 256), overlap_fac = 0.1):
+    '''
+    img_size: the size(shape) of input image
+    IMG_HEIGHT, IMG_WIDTH: height and width for the training network
+    Cropping rule: from top-left to bottom-right, row first
+    '''
+    
+    img_y = img_size[0]
+    img_x = img_size[1]
+    IMG_HEIGHT = target_size[0]
+    IMG_WIDTH = target_size[1]
+    overlap_fac = overlap_fac
+    
+    overlap_y = round(target_size[0] * overlap_fac) #overlap pixel
+    step_y = target_size[0] - overlap_y # step size    
+    
+    y_step_c = math.ceil((img_y - IMG_HEIGHT) / step_y) + 1
+    y_rem = (img_y - IMG_HEIGHT) % step_y 
+
+    overlap_x = round(target_size[1] * overlap_fac) #overlap pixel
+    step_x = target_size[1] - overlap_x # step size    
+    
+    x_step_c = math.ceil((img_x - IMG_WIDTH) / step_x) + 1
+    x_rem = (img_x - IMG_WIDTH) % step_x 
+    
+    
+    
+    outputidx = np.empty((0, 6), int)
+    
+    ## create crop index
+    for imgidx_y in trange(y_step_c):  
+        if (imgidx_y+1)%y_step_c != 0:
+            start_y = imgidx_y*step_y
+            end_y = imgidx_y*step_y+IMG_HEIGHT
+            for imgidx_x in range(x_step_c):    
+                if (imgidx_x+1)%x_step_c != 0:
+                    start_x = imgidx_x*step_x
+                    end_x = imgidx_x*step_x+IMG_WIDTH
+                    outputidx = np.append(outputidx, 
+                                                np.array([[start_y, end_y, 
+                                                           start_x, end_x, 
+                                                           imgidx_y, imgidx_x]]), axis=0)
+                else:
+                    start_x = img_x-IMG_WIDTH
+                    end_x = img_x
+                    outputidx = np.append(outputidx, 
+                                                np.array([[start_y, end_y, 
+                                                           start_x, end_x, 
+                                                           imgidx_y, imgidx_x]]), axis=0)
+        else: 
+            start_y = img_y-IMG_HEIGHT
+            end_y = img_y
+            for imgidx_x in range(x_step_c): 
+                if (imgidx_x+1)%x_step_c != 0:
+                    start_x = imgidx_x*step_x
+                    end_x = imgidx_x*step_x+IMG_WIDTH
+                    outputidx = np.append(outputidx, 
+                                                np.array([[start_y, end_y, 
+                                                           start_x, end_x, 
+                                                           imgidx_y, imgidx_x]]), axis=0)
+                else:
+                    start_x = img_x-IMG_WIDTH
+                    end_x = img_x
+                    outputidx = np.append(outputidx, 
+                                                np.array([[start_y, end_y, 
+                                                           start_x, end_x, 
+                                                           imgidx_y, imgidx_x]]), axis=0)  
+    
+    print("Image Shape: {}, {}".format(img_y, img_x))
+    print("Patch size: {}, {}".format(IMG_HEIGHT, IMG_WIDTH))
+    print("Overlap Factor: {}".format(overlap_fac))
+    print("Step y: {}".format(step_y))
+    print("Step y count: {}".format(y_step_c))
+    print("Remainder in y: {}".format(y_rem))
+    print("Step x: {}".format(step_x))
+    print("Step x count: {}".format(x_step_c))
+    print("Remainder in x: {}".format(x_rem))
+    
+    return(outputidx)
+            
+            
+def crop_to_patch(img, cropidx, target_size = (256, 256)):
+    '''
+    img: input image for cropping
+    cropidx: index for cropping the image
+    Var: [start_y, end_y, start_x, end_x]
+    '''
+    
+    ## crop img
+    outputimg = np.zeros((cropidx.shape[0], target_size[0], target_size[1]))
+    for idx in trange(outputimg.shape[0]):
+        start_y = cropidx[idx, 0]
+        end_y = cropidx[idx, 1]
+        start_x = cropidx[idx, 2]
+        end_x = cropidx[idx, 3]
+        outputimg[idx] = img[start_y:end_y, start_x:end_x]
+   
+    return(outputimg)
+
+
+def construct_from_patch(img_stack: Any, 
+                         cropidx: Any,
+                         target_size: Union[List[int], Tuple[int]]):
+    '''
+    img: input image for cropping
+    IMG_HEIGHT, IMG_WIDTH: height and width for the training network
+    Cropping rule: from top-left to bottom-right, row first
+    '''
+    
+    img_patch_y = img_stack.shape[1]
+    img_patch_x = img_stack.shape[2]
+    img_target_size_y = target_size[0]
+    img_target_size_x = target_size[1]
+    # reshape the gray image
+    img_stack = np.reshape(img_stack, (img_stack.shape[0], img_stack.shape[1], img_stack.shape[2])) 
+    
+    # create the empty array
+    img_stack_repos = np.full((img_stack.shape[0], img_target_size_y, img_target_size_x), np.nan)
+    
+    for idx in trange(img_stack.shape[0]):
+        img_stack_repos[idx, cropidx[idx, 0]:cropidx[idx, 1], 
+                        cropidx[idx, 2]:cropidx[idx, 3]] = img_stack[idx, :, :]
+    
+    outputimg = np.nanmean(img_stack_repos, axis = 0)
+    
+    print("Patch Image Shape: {}, {}".format(img_patch_y, img_patch_x))
+    print("Target Image Size: {}, {}".format(img_target_size_y, img_target_size_x))
+    return(outputimg)
