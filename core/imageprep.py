@@ -1,11 +1,19 @@
 import os, glob
 import numpy as np
+import math
 import uuid
 from skimage.io import imread, imsave, imshow
 from PIL import Image, ImageTk
 from typing import Union, Any, List, Tuple
 from tqdm.notebook import trange
-import math
+import matplotlib.pyplot as plt
+
+def dir_checker(folder_name, path):
+    if not folder_name in os.listdir(path):
+        print('{} does not exist in {}'.format(folder_name, path))
+        os.mkdir(os.path.join(path, folder_name))
+    else: 
+        print('{} exists in {}'.format(folder_name, path))
 
 def random_crop(imgs, random_range, seed=None):
     # Note: image_data_format is 'channel_last'
@@ -49,7 +57,76 @@ def crop_generator(batches, crop_length):
             batch_crops[i] = random_crop(batch_x[i], (crop_length, crop_length))
         yield (batch_crops, batch_y)
 
-def random_crop_batch(ipfolder, opfolder, label, random_size_range, crop_per_image, seed=None):
+def crop_image_only_outside(label, img, tol=0, pad=256):
+    # img is 2D image data
+    # tol  is tolerance
+    label = np.pad(label, ((pad, pad), (pad, pad)), 'constant', constant_values=0)
+    img = np.pad(img, ((pad, pad), (pad, pad)), 'constant', constant_values=0)
+    mask = label > tol
+    m, n = label.shape
+    mask0, mask1 = mask.any(0), mask.any(1)
+    col_start, col_end = mask0.argmax() - pad, n-mask0[::-1].argmax() + pad
+    row_start, row_end = mask1.argmax() - pad, m-mask1[::-1].argmax() + pad
+    return (label[row_start:row_end,col_start:col_end], img[row_start:row_end,col_start:col_end])
+        
+def random_crop_batch_v2(ipimglist, iplabellist, opfolder, label, crop_size, crop_per_image, seed=None):
+    '''
+    Takes images in the input folder("ipfolder") and randomly crop the images in batch, and 
+    save to the output folder("opfolder"). The range of cropping size can be defined by 
+    "random_size_range". "crop_per_image" defines the amount of images generated from 
+    each inputs. 
+    '''
+    
+    # create the file list
+    imglist = ipimglist[label]
+    labellist = iplabellist[label]
+    
+    total_img_count = len(imglist) * crop_per_image
+
+    
+    id_count = 1
+    
+    # iterate through each files
+    for idx in trange(len(imglist)): 
+        # load the raw images
+        img_tmp = imread(imglist[idx])
+
+        # load the labeled images
+        label_tmp = Image.open(labellist[idx])
+        label_tmp_array = np.array(label_tmp) 
+        # incase there are labels bigger than 1
+        label_tmp_array = (label_tmp_array > 0) 
+        label_tmp_array, img_tmp_array = crop_image_only_outside(label_tmp_array, img_tmp)
+        
+        # print(label_tmp_array.shape)
+        # plt.imshow(img_tmp_array)
+        # plt.imshow(label_tmp_array)
+        
+        # while subimg_count < (crop_per_image + 1):        
+        for i in range(crop_per_image):
+            # crop the image by a give value
+            imgs_crop = random_crop([img_tmp_array, label_tmp_array], crop_size, seed=seed)
+            img_crop = imgs_crop[0]
+            label_crop = imgs_crop[1]
+            plt.imshow(label_crop)
+            
+            # percentage = np.sum(label_crop)/(crop_size[0] * crop_size[1])
+
+            
+            # save image
+            pil_img_crop = Image.fromarray(img_crop)
+            pil_label_crop = Image.fromarray(label_crop)
+
+            id_name = str(id_count)
+            pil_img_crop.save(os.path.join(opfolder, 'images', label, id_name.zfill(4) + '.tif'))
+            pil_label_crop.save(os.path.join(opfolder, 'labels', label, id_name.zfill(4) + '.tif'))
+
+            id_count += 1
+         
+            if seed is not None:
+                seed += 1
+                        
+def random_crop_batch_v1(ipfolder, opfolder, label, random_size_range, crop_per_image, seed=None):
     '''
     Takes images in the input folder("ipfolder") and randomly crop the images in batch, and 
     save to the output folder("opfolder"). The range of cropping size can be defined by 
@@ -94,6 +171,7 @@ def random_crop_batch(ipfolder, opfolder, label, random_size_range, crop_per_ima
                 seed += 1
             
             id_count += 1
+            
             
 def create_crop_idx(img_size, target_size = (256, 256), overlap_fac = 0.1):
     '''
