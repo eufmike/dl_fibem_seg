@@ -69,7 +69,11 @@ def crop_image_only_outside(label, img, tol=0, pad=256):
     row_start, row_end = mask1.argmax() - pad, m-mask1[::-1].argmax() + pad
     return (label[row_start:row_end,col_start:col_end], img[row_start:row_end,col_start:col_end])
         
-def random_crop_batch_v2(ipimglist, iplabellist, opfolder, label, crop_size, crop_per_image, seed=None):
+def random_crop_batch_v2(ipimglist, iplabellist, 
+                         opfolder, label, 
+                         crop_size, crop_per_image, 
+                         crop_outside = False,
+                         seed=None):
     '''
     Takes images in the input folder("ipfolder") and randomly crop the images in batch, and 
     save to the output folder("opfolder"). The range of cropping size can be defined by 
@@ -90,7 +94,6 @@ def random_crop_batch_v2(ipimglist, iplabellist, opfolder, label, crop_size, cro
     for idx in trange(len(imglist)): 
         # load the raw images
         img_tmp = imread(imglist[idx], as_gray=True)
-        plt.imshow(img_tmp)
         
         # load the labeled images
         label_tmp = imread(labellist[idx], as_gray=True)
@@ -98,7 +101,13 @@ def random_crop_batch_v2(ipimglist, iplabellist, opfolder, label, crop_size, cro
         
         # Incase there are labels bigger than 1
         label_tmp_array = label_tmp > 0 
-        label_tmp_array, img_tmp_array = crop_image_only_outside(label_tmp_array, img_tmp)
+
+        
+        if crop_outside: 
+            label_tmp_array, img_tmp_array = crop_image_only_outside(label_tmp_array, img_tmp)
+        else: 
+            img_tmp_array = img_tmp
+            label_tmp_array = label_tmp_array
         
         # print(label_tmp_array.shape)
         # plt.imshow(img_tmp_array)
@@ -110,10 +119,9 @@ def random_crop_batch_v2(ipimglist, iplabellist, opfolder, label, crop_size, cro
             imgs_crop = random_crop([img_tmp_array, label_tmp_array], crop_size, seed=seed)
             img_crop = imgs_crop[0]
             label_crop = imgs_crop[1]
-            plt.imshow(label_crop)
+            # plt.imshow(label_crop)
             
             # percentage = np.sum(label_crop)/(crop_size[0] * crop_size[1])
-
             
             # save image
             pil_img_crop = Image.fromarray(img_crop)
