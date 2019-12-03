@@ -89,13 +89,15 @@ def random_crop_batch_v2(ipimglist, iplabellist, opfolder, label, crop_size, cro
     # iterate through each files
     for idx in trange(len(imglist)): 
         # load the raw images
-        img_tmp = imread(imglist[idx])
-
+        img_tmp = imread(imglist[idx], as_gray=True)
+        plt.imshow(img_tmp)
+        
         # load the labeled images
-        label_tmp = Image.open(labellist[idx])
-        label_tmp_array = np.array(label_tmp) 
-        # incase there are labels bigger than 1
-        label_tmp_array = (label_tmp_array > 0) 
+        label_tmp = imread(labellist[idx], as_gray=True)
+        # plt.imshow(label_tmp)
+        
+        # Incase there are labels bigger than 1
+        label_tmp_array = label_tmp > 0 
         label_tmp_array, img_tmp_array = crop_image_only_outside(label_tmp_array, img_tmp)
         
         # print(label_tmp_array.shape)
