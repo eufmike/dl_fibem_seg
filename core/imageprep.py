@@ -69,11 +69,14 @@ def crop_image_only_outside(label, img, tol=0, pad=256):
     row_start, row_end = mask1.argmax() - pad, m-mask1[::-1].argmax() + pad
     return (label[row_start:row_end,col_start:col_end], img[row_start:row_end,col_start:col_end])
         
-def random_crop_batch_v2(ipimglist, iplabellist, 
-                         opfolder, label, 
-                         crop_size, crop_per_image, 
-                         crop_outside = False,
-                         seed=None):
+def random_crop_batch(ipimglist, 
+                      iplabellist, 
+                      opfolder, 
+                      label, 
+                      crop_size, 
+                      crop_per_image, 
+                      crop_outside = False,
+                      seed=None):
     '''
     Takes images in the input folder("ipfolder") and randomly crop the images in batch, and 
     save to the output folder("opfolder"). The range of cropping size can be defined by 
@@ -136,7 +139,7 @@ def random_crop_batch_v2(ipimglist, iplabellist,
             if seed is not None:
                 seed += 1
                         
-def random_crop_batch_v1(ipfolder, opfolder, label, random_size_range, crop_per_image, seed=None):
+def random_crop_batch_old(ipfolder, opfolder, label, random_size_range, crop_per_image, seed=None):
     '''
     Takes images in the input folder("ipfolder") and randomly crop the images in batch, and 
     save to the output folder("opfolder"). The range of cropping size can be defined by 

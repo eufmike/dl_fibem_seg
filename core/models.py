@@ -8,7 +8,7 @@ from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.optimizers import Adam, Adadelta
 from tensorflow.keras import backend as K
 
-def UNet(shape, nClasses=1):
+def UNet(shape, nClasses=1, loss="binary_crossentropy", lr=1e-5, metrics=['accuracy']):
     
     IMG_HEIGHT = shape[0]
     IMG_WIDTH = shape[1]
@@ -81,7 +81,7 @@ def UNet(shape, nClasses=1):
     # model.outputWidth = outputWidth
     # model.outputHeight = outputHeight
 
-    model.compile(loss="binary_crossentropy", optimizer = Adam(lr = 1e-5) , metrics=['accuracy'] )
+    model.compile(loss=loss, optimizer = Adam(lr = lr) , metrics=metrics)
     model.summary()
 
     return model
