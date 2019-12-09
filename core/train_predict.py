@@ -6,7 +6,13 @@ from tqdm.notebook import trange
 from core.imageprep import create_crop_idx, crop_to_patch, construct_from_patch
 
 
-def stack_predict(input_imgpath, output_imgpath, cropidx, model, patch_size = (256, 256), predict_threshold = 0.5):
+def stack_predict(input_imgpath, 
+                  output_imgpath, 
+                  cropidx, 
+                  model, 
+                  rescale = None,
+                  patch_size = (256, 256), 
+                  predict_threshold = 0.5):
     
     IMG_HEIGHT = patch_size[0]
     IMG_WIDTH = patch_size[1]
@@ -17,6 +23,10 @@ def stack_predict(input_imgpath, output_imgpath, cropidx, model, patch_size = (2
         
         # load image
         img_tmp = imread(inputimg)
+        
+        # process rescale
+        if rescale is not None:  
+            img_tmp = img_tmp * rescale 
         
         # crop the image
         outputimg_tmp = crop_to_patch(img_tmp, cropidx, (IMG_HEIGHT, IMG_WIDTH))
