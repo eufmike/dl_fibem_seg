@@ -211,12 +211,11 @@ def create_crop_idx(img_size, target_size = (256, 256), overlap_fac = 0.1):
     x_step_c = math.ceil((img_x - IMG_WIDTH) / step_x) + 1
     x_rem = (img_x - IMG_WIDTH) % step_x 
     
-    
-    
     outputidx = np.empty((0, 6), int)
     
     ## create crop index
-    for imgidx_y in trange(y_step_c):  
+    # for imgidx_y in trange(y_step_c):  
+    for imgidx_y in range(y_step_c): 
         if (imgidx_y+1)%y_step_c != 0:
             start_y = imgidx_y*step_y
             end_y = imgidx_y*step_y+IMG_HEIGHT
@@ -254,15 +253,15 @@ def create_crop_idx(img_size, target_size = (256, 256), overlap_fac = 0.1):
                                                            start_x, end_x, 
                                                            imgidx_y, imgidx_x]]), axis=0)  
     
-    print("Image Shape: {}, {}".format(img_y, img_x))
-    print("Patch size: {}, {}".format(IMG_HEIGHT, IMG_WIDTH))
-    print("Overlap Factor: {}".format(overlap_fac))
-    print("Step y: {}".format(step_y))
-    print("Step y count: {}".format(y_step_c))
-    print("Remainder in y: {}".format(y_rem))
-    print("Step x: {}".format(step_x))
-    print("Step x count: {}".format(x_step_c))
-    print("Remainder in x: {}".format(x_rem))
+    # print("Image Shape: {}, {}".format(img_y, img_x))
+    # print("Patch size: {}, {}".format(IMG_HEIGHT, IMG_WIDTH))
+    # print("Overlap Factor: {}".format(overlap_fac))
+    # print("Step y: {}".format(step_y))
+    # print("Step y count: {}".format(y_step_c))
+    # print("Remainder in y: {}".format(y_rem))
+    # print("Step x: {}".format(step_x))
+    # print("Step x count: {}".format(x_step_c))
+    # print("Remainder in x: {}".format(x_rem))
     
     return(outputidx)
             
@@ -276,7 +275,8 @@ def crop_to_patch(img, cropidx, target_size = (256, 256)):
     
     ## crop img
     outputimg = np.zeros((cropidx.shape[0], target_size[0], target_size[1]))
-    for idx in trange(outputimg.shape[0]):
+    # for idx in trange(outputimg.shape[0]):
+    for idx in range(outputimg.shape[0]):
         start_y = cropidx[idx, 0]
         end_y = cropidx[idx, 1]
         start_x = cropidx[idx, 2]
@@ -305,12 +305,13 @@ def construct_from_patch(img_stack: Any,
     # create the empty array
     img_stack_repos = np.full((img_stack.shape[0], img_target_size_y, img_target_size_x), np.nan)
     
-    for idx in trange(img_stack.shape[0]):
+    # for idx in trange(img_stack.shape[0]):
+    for idx in range(img_stack.shape[0]):
         img_stack_repos[idx, cropidx[idx, 0]:cropidx[idx, 1], 
                         cropidx[idx, 2]:cropidx[idx, 3]] = img_stack[idx, :, :]
     
     outputimg = np.nanmean(img_stack_repos, axis = 0)
     
-    print("Patch Image Shape: {}, {}".format(img_patch_y, img_patch_x))
-    print("Target Image Size: {}, {}".format(img_target_size_y, img_target_size_x))
+    # print("Patch Image Shape: {}, {}".format(img_patch_y, img_patch_x))
+    # print("Target Image Size: {}, {}".format(img_target_size_y, img_target_size_x))
     return(outputimg)

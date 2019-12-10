@@ -36,7 +36,9 @@ def stack_predict(input_imgpath,
                                                       outputimg_tmp.shape[2], 1))
         
         # push the crop images into the model
-        img_predict_stack = model.predict(outputimg_tmp_re, batch_size = 16, verbose = 1)
+        img_predict_stack = model.predict(outputimg_tmp_re, batch_size = 16, 
+                                          # verbose = 1
+                                         )
         
         outputimg = construct_from_patch(img_predict_stack, 
                                          cropidx, 
