@@ -315,3 +315,82 @@ def construct_from_patch(img_stack: Any,
     # print("Patch Image Shape: {}, {}".format(img_patch_y, img_patch_x))
     # print("Target Image Size: {}, {}".format(img_target_size_y, img_target_size_x))
     return(outputimg)
+
+def create_crop_idx_whole(img_size, target_size = (256, 256), overlap_fac = 0.1):
+    '''
+    img_size: the size(shape) of input image
+    IMG_HEIGHT, IMG_WIDTH: height and width for the training network
+    Cropping rule: from top-left to bottom-right, row first
+    '''
+    
+    img_y = img_size[0]
+    img_x = img_size[1]
+    IMG_HEIGHT = target_size[0]
+    IMG_WIDTH = target_size[1]
+    overlap_fac = overlap_fac
+    
+    overlap_y = round(target_size[0] * overlap_fac) #overlap pixel
+    step_y = target_size[0] - overlap_y # step size    
+    
+    y_step_c = math.ceil((img_y - IMG_HEIGHT) / step_y) + 1
+    y_rem = (img_y - IMG_HEIGHT) % step_y 
+
+    overlap_x = round(target_size[1] * overlap_fac) #overlap pixel
+    step_x = target_size[1] - overlap_x # step size    
+    
+    x_step_c = math.ceil((img_x - IMG_WIDTH) / step_x) + 1
+    x_rem = (img_x - IMG_WIDTH) % step_x 
+    
+    if (IMG_HEIGHT > img_y) | (IMG_WIDTH > img_x):
+        print('At least one dimension of the image is smaller than patch size.')
+        return
+    
+    outputidx = np.empty((0, 6), int)
+    
+    ## create crop index
+    # for imgidx_y in trange(y_step_c):  
+    for imgidx_y in range(y_step_c):
+        if (imgidx_y+1)%y_step_c != 0:
+            start_y = imgidx_y*step_y
+            end_y = imgidx_y*step_y+IMG_HEIGHT
+            for imgidx_x in range(x_step_c):
+                if (imgidx_x+1)%x_step_c == 0:
+                    start_x = img_x-IMG_WIDTH
+                    end_x = img_x
+                    outputidx = np.append(outputidx,
+                                          np.array([[start_y, end_y,
+                                                     start_x, end_x,
+                                                     imgidx_y, imgidx_x]]), axis=0)
+        else: 
+            start_y = img_y-IMG_HEIGHT
+            end_y = img_y
+            for imgidx_x in range(x_step_c): 
+                if (imgidx_x+1)%x_step_c != 0:
+                    start_x = imgidx_x*step_x
+                    end_x = imgidx_x*step_x+IMG_WIDTH
+                    outputidx = np.append(outputidx, 
+                                                np.array([[start_y, end_y, 
+                                                           start_x, end_x, 
+                                                           imgidx_y, imgidx_x]]), axis=0)
+                else:
+                    start_x = img_x-IMG_WIDTH
+                    end_x = img_x
+                    outputidx = np.append(outputidx, 
+                                                np.array([[start_y, end_y, 
+                                                           start_x, end_x, 
+                                                           imgidx_y, imgidx_x]]), axis=0)
+         
+    # print("Image Shape: {}, {}".format(img_y, img_x))
+    # print("Patch size: {}, {}".format(IMG_HEIGHT, IMG_WIDTH))
+    # print("Overlap Factor: {}".format(overlap_fac))
+    # print("Step y: {}".format(step_y))
+    # print("Step y count: {}".format(y_step_c))
+    # print("Remainder in y: {}".format(y_rem))
+    # print("Step x: {}".format(step_x))
+    # print("Step x count: {}".format(x_step_c))
+    # print("Remainder in x: {}".format(x_rem))
+    
+    return(outputidx)
+
+
+    
