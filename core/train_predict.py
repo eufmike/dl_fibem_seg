@@ -59,6 +59,8 @@ def stack_predict_v2(input_imgpath,
                   patch_size = (256, 256),
                   predict_threshold = 0.5):
     
+    size_factor = 32
+    
     IMG_HEIGHT = patch_size[0]
     IMG_WIDTH = patch_size[1]
     
@@ -77,7 +79,7 @@ def stack_predict_v2(input_imgpath,
             img_tmp = img_tmp * rescale 
             
         # predict big region
-        img_tmp_crop = img_tmp[:img_tmp.shape[0]//16 * 16, :img_tmp.shape[1]//16 * 16]
+        img_tmp_crop = img_tmp[:img_tmp.shape[0]//size_factor * size_factor, :img_tmp.shape[1]//size_factor * size_factor]
         img_tmp_crop = img_tmp_crop.reshape(1, img_tmp_crop.shape[0], img_tmp_crop.shape[1], 1)
         img_tmp_crop_predict = model.predict(img_tmp_crop, batch_size = 16)
         img_tmp_crop_predict = img_tmp_crop_predict.reshape(img_tmp_crop_predict.shape[1],
