@@ -7,6 +7,7 @@ from PIL import Image, ImageTk
 from typing import Union, Any, List, Tuple
 from tqdm.notebook import trange
 import matplotlib.pyplot as plt
+import itertools
 
 def dir_checker(folder_name, path):
     if not folder_name in os.listdir(path):
@@ -44,6 +45,7 @@ def random_crop(imgs, random_range, seed=None):
     for img in imgs: 
         img_tmp = img[y:(y+dy), x:(x+dx)]
         imgs_crop.append(img_tmp)
+    
     return imgs_crop
 
 def crop_generator(batches, crop_length):
@@ -138,54 +140,184 @@ def random_crop_batch(ipimglist,
          
             if seed is not None:
                 seed += 1
-                        
-def random_crop_batch_old(ipfolder, opfolder, label, random_size_range, crop_per_image, seed=None):
+
+                
+def volume_loader(ipimglist):
     '''
-    Takes images in the input folder("ipfolder") and randomly crop the images in batch, and 
-    save to the output folder("opfolder"). The range of cropping size can be defined by 
-    "random_size_range". "crop_per_image" defines the amount of images generated from 
+    load the image volume
+    '''
+    img_0 = imread(ipimglist[0], as_gray=True)
+    
+    # create the file list 
+    img_zdim = len(ipimglist)
+    img_ydim = img_0.shape[0]
+    img_xdim = img_0.shape[1]
+    
+    img_stack = np.zeros((img_zdim, img_ydim, img_xdim))
+    for z_idx in trange(img_zdim):
+        img_tmp = imread(ipimglist[z_idx], as_gray=True)
+        img_stack[z_idx] = img_tmp
+
+    return img_stack
+
+def sampler_3D(img_stack,
+               crop_size, 
+               crop_per_image, 
+               seed = None):
+    
+    img_zdim, img_ydim, img_xdim = img_stack.shape
+    # print((img_zdim, img_ydim, img_xdim))
+    crop_z_size, crop_y_size, crop_x_size = crop_size
+    
+    if seed is None:
+        z_idx_start = np.random.randint(0, img_zdim - crop_z_size + 1)
+        y_idx_start = np.random.randint(0, img_ydim - crop_y_size + 1)
+        x_idx_start = np.random.randint(0, img_xdim - crop_x_size + 1)
+    else: 
+        np.random.seed(seed)
+        z_idx_start = np.random.randint(0, img_zdim - crop_z_size + 1)
+        np.random.seed(seed + 1)
+        y_idx_start = np.random.randint(0, img_ydim - crop_y_size + 1)
+        np.random.seed(seed + 2)
+        x_idx_start = np.random.randint(0, img_xdim - crop_x_size + 1)
+
+    opidx = np.empty((0, 6), int)
+    
+    opidx_list = [z_idx_start, 
+                y_idx_start,
+                x_idx_start, 
+                z_idx_start + crop_z_size,
+                y_idx_start + crop_y_size, 
+                x_idx_start + crop_x_size
+                ] 
+    
+    # print(opidx_list)
+    
+    opidx = np.append(opidx, np.array([opidx_list]), axis = 0)
+    
+    # print(opidx)
+    
+    temp_seed = seed + 100
+    for img_idx in range(crop_per_image - 1):
+        
+        
+        if seed is None: 
+            z_idx_start = np.random.randint(0, img_zdim - crop_z_size + 1)
+            y_idx_start = np.random.randint(0, img_ydim - crop_y_size + 1)
+            x_idx_start = np.random.randint(0, img_xdim - crop_x_size + 1)
+            
+        else:     
+            temp_seed = ((temp_seed + 0))
+            np.random.seed(temp_seed)
+            z_idx_start = np.random.randint(0, img_zdim - crop_z_size + 1)
+            np.random.seed(temp_seed + 1)
+            y_idx_start = np.random.randint(0, img_ydim - crop_y_size + 1)
+            np.random.seed(temp_seed + 2)
+            x_idx_start = np.random.randint(0, img_xdim - crop_x_size + 1)
+        
+        z_idx_s = [z_idx_start, z_idx_start + crop_z_size]
+        y_idx_s = [y_idx_start, y_idx_start + crop_y_size]
+        x_idx_s = [x_idx_start, x_idx_start + crop_x_size]
+        
+        point_list = list(itertools.product(z_idx_s, y_idx_s, x_idx_s))
+        
+        point_count = 0
+        for point in point_list:
+            for poidx_idx in range(opidx.shape[0]):
+                tmp_boarder = opidx[poidx_idx]
+                if (point[0] > tmp_boarder[0] and point[0] < tmp_boarder[3] and 
+                    point[1] > tmp_boarder[1] and point[1] < tmp_boarder[4] and 
+                    point[2] > tmp_boarder[2] and point[2] < tmp_boarder[5]):
+                    # print('overlap')
+                    break
+            point_count += 1
+            
+        if point_count == 8:
+            tmp_point = [z_idx_s[0],
+                         y_idx_s[0],
+                         x_idx_s[0],
+                         z_idx_s[1],
+                         y_idx_s[1],
+                         x_idx_s[1]
+                         ]
+            # print(tmp_point)
+            opidx = np.append(opidx, np.array([tmp_point]), axis = 0)
+        
+        temp_seed += 1
+        
+    return opidx
+
+def patch_sampler_3D(ipimglist,
+                     opfolder,
+                     crop_size,
+                     crop_per_image,
+                     crop_outside = False,
+                     seed=None):
+    '''
+    Takes images in the input folder and randomly crop the images in volume in 3D with no overlap, 
+    then save to the output folder("opfolder"). The range of cropping size can be defined by 
+    "crop_size". "crop_per_image" defines the amount of images generated from 
     each inputs. 
     '''
+    # load the first image
+    img_0 = imread(ipimglist[0], as_gray=True)
     
-    # create the file list
-    imglist = glob.glob(os.path.join(ipfolder, 'images', '*', '*.tif'), recursive=True)
-    labellist = glob.glob(os.path.join(ipfolder, 'labels', '*', '*.tif'), recursive=True)
+    # create the file list 
+    img_zdim = len(ipimglist)
+    img_ydim = img_0.shape[0]
+    img_xdim = img_0.shape[1]
+    total_size = float(img_zdim * img_ydim * img_xdim)
     
-    '''
-    print('First 5 filenames')
-    print(imglist[:5])
-    print('First 5 filenames')
-    print(labellist[:5])
-    '''
-
-    id_count = 1
-
-    # iterate through each files
-    for idx, imgpath in enumerate(imglist): 
-        # load the raw images
-        img_tmp = imread(imglist[idx])
-
-        # load the labeled images
-        label_tmp = Image.open(labellist[idx])
-        label_tmp_array = np.array(label_tmp)    
-        
-        for i in range(crop_per_image):
-            # crop the image by a give value
-            imgs_crop = random_crop([img_tmp, label_tmp_array], [256, 256], seed=seed)
-        
-            img_crop = Image.fromarray(imgs_crop[0])
-            label_crop = Image.fromarray(imgs_crop[1])
-
-            id_name = str(id_count)
-            img_crop.save(os.path.join(opfolder, 'images', label, id_name.zfill(4) + '.tif'))
-            label_crop.save(os.path.join(opfolder, 'labels', label, id_name.zfill(4) + '.tif'))
-
-            if seed is not None:
-                seed += 1
-            
-            id_count += 1
-            
-            
+    print('image z size: {}'.format(img_zdim))
+    print('image y size: {}'.format(img_ydim))
+    print('image x size: {}'.format(img_xdim))
+    print('total size: {}'.format(total_size))
+    
+    total_crop_size = crop_size[0] * crop_size[1] * crop_size[2] * crop_per_image
+    print('total crop size: {}'.format(total_crop_size))
+    
+    # calculate percentage    
+    percentage = total_crop_size * 100/total_size
+    
+    print('Occupied {}% of total volume'.format(percentage))
+    
+    # loading image
+    print('Loading images...')
+    img_stack = np.zeros((img_zdim, img_ydim, img_xdim))
+    for z_idx in trange(img_zdim):
+        img_tmp = imread(ipimglist[z_idx], as_gray=True)
+        img_stack[z_idx] = img_tmp
+    
+    # create crop idx
+    print('Crop per image: {}'.format(crop_per_image))
+    print('Sampling image...')
+    crop_idx_3D = sampler_3D(img_stack = img_stack,
+               crop_size = crop_size, 
+               crop_per_image = crop_per_image, 
+               seed = seed)
+    
+    # crop image
+    print('Cropping image in 3D...')
+    volume_crop = np.zeros((crop_per_image, crop_size[0], crop_size[1], crop_size[2]))
+    
+    for idx in trange(crop_per_image):
+        idx_tmp = crop_idx_3D[idx]
+        print(idx_tmp)
+        volume_crop[idx] = img_stack[idx_tmp[0]:idx_tmp[3], 
+                                     idx_tmp[1]:idx_tmp[4],
+                                     idx_tmp[2]:idx_tmp[5]
+                                    ]
+    # save image 
+    print('Saving cropping volume')
+    for idx in trange(crop_per_image):
+        foldername = str(idx).zfill(4)
+        dir_checker(foldername, opfolder)
+        for z_idx in range(crop_size[0]):
+            img_tmp = volume_crop[idx, z_idx]
+            pil_img_tmp = Image.fromarray(img_tmp)
+            pil_img_tmp.save(os.path.join(opfolder, foldername, str(z_idx).zfill(4) + '.tif'))
+    
+    
 def create_crop_idx(img_size, target_size = (256, 256), overlap_fac = 0.1):
     '''
     img_size: the size(shape) of input image
@@ -391,6 +523,7 @@ def create_crop_idx_whole(img_size, target_size = (256, 256), overlap_fac = 0.1)
     # print("Remainder in x: {}".format(x_rem))
     
     return(outputidx)
+
 
 
     
