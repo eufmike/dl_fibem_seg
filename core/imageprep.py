@@ -8,6 +8,7 @@ from typing import Union, Any, List, Tuple
 from tqdm.notebook import trange
 import matplotlib.pyplot as plt
 import itertools
+from pprint import pprint
 
 def dir_checker(folder_name, path):
     if not folder_name in os.listdir(path):
@@ -44,6 +45,42 @@ def random_crop(imgs, random_range, seed=None):
     imgs_crop = []
     for img in imgs: 
         img_tmp = img[y:(y+dy), x:(x+dx)]
+        imgs_crop.append(img_tmp)
+    
+    return imgs_crop
+
+def random_crop_3D(imgs, crop_size, seed=None):
+    # Note: image_data_format is 'channel_last'
+    # assert img.shape[2] == 3
+    depth, height, width = imgs[0].shape
+    
+    dz = crop_size[0]
+    dy = crop_size[1]
+    dx = crop_size[2]
+    
+    if seed is not None:
+        
+        if depth == dz: 
+            z = 0
+        else:
+            np.random.seed(seed + 20)
+            z = np.random.randint(0, depth - dz + 1)
+        np.random.seed(seed + 20 + 1)
+        y = np.random.randint(0, height - dy + 1)
+        np.random.seed(seed + 20 + 2)
+        x = np.random.randint(0, width - dx + 1)
+    else:
+        if depth == dz: 
+            z = 0
+        else:
+            z = np.random.randint(0, depth - dz + 1)
+        y = np.random.randint(0, height - dy + 1)
+        x = np.random.randint(0, width - dx + 1)
+        
+    
+    imgs_crop = []
+    for img in imgs: 
+        img_tmp = img[z:(z+dz), y:(y+dy), x:(x+dx)]
         imgs_crop.append(img_tmp)
     
     return imgs_crop
@@ -91,7 +128,6 @@ def random_crop_batch(ipimglist,
     labellist = iplabellist[label]
     
     total_img_count = len(imglist) * crop_per_image
-
     
     id_count = 1
     
@@ -141,6 +177,79 @@ def random_crop_batch(ipimglist,
             if seed is not None:
                 seed += 1
 
+def random_crop_batch_3D(ipimglist, 
+                      iplabellist, 
+                      opfolder, 
+                      label, 
+                      crop_size, 
+                      crop_per_image, 
+                      seed=None):
+    '''
+    Takes images in the input folder("ipfolder") and randomly crop the images in batch, and 
+    save to the output folder("opfolder"). The range of cropping size can be defined by 
+    "random_size_range". "crop_per_image" defines the amount of images generated from 
+    each inputs. 
+    '''
+    
+    # create the file list
+    imglist = ipimglist[label]
+    labellist = iplabellist[label]
+    
+    total_img_count = len(imglist) * crop_per_image
+    
+    # iterate through each files
+    for idx in trange(len(imglist)): 
+        # load the raw images
+        # print(imglist)
+        img_tmp_list = glob.glob(os.path.join(imglist[idx], '*.tif'), recursive=True)
+        # pprint(img_tmp_list)
+        img_tmp = volume_loader(img_tmp_list)
+        
+        # load the labeled images
+        label_tmp_list = glob.glob(os.path.join(labellist[idx], '*.tif'), recursive=True)
+        label_tmp = volume_loader(label_tmp_list)
+        # plt.imshow(label_tmp)
+        
+        # Incase there are labels bigger than 1
+        label_tmp_array = label_tmp > 0 
+       
+        img_tmp_array = img_tmp
+        label_tmp_array = label_tmp_array
+        
+        
+        print(label_tmp_array.shape)
+        # plt.imshow(img_tmp_array)
+        # plt.imshow(label_tmp_array)
+        
+        # while subimg_count < (crop_per_image + 1):        
+        for i in range(crop_per_image):
+            # crop the image by a give value
+            imgs_crop = random_crop_3D([img_tmp_array, label_tmp_array], crop_size, seed=seed)
+            img_crop = imgs_crop[0]
+            label_crop = imgs_crop[1]
+            # plt.imshow(label_crop)
+            
+            # percentage = np.sum(label_crop)/(crop_size[0] * crop_size[1])
+            
+            
+            loc_name = str(i+1)
+            dir_checker(loc_name.zfill(4), os.path.join(opfolder, 'images', label))
+            dir_checker(loc_name.zfill(4), os.path.join(opfolder, 'labels', label))
+            
+            for j in range(img_crop.shape[0]): 
+                # save image
+                pil_img_crop = Image.fromarray(img_crop[j])
+                pil_label_crop = Image.fromarray(label_crop[j])
+
+                id_name = str(j+1)
+                
+                pil_img_crop.save(os.path.join(opfolder, 'images', label, loc_name.zfill(4), id_name.zfill(4) + '.tif'))
+                pil_label_crop.save(os.path.join(opfolder, 'labels', label, loc_name.zfill(4), id_name.zfill(4) + '.tif'))
+
+            
+
+            if seed is not None:
+                seed += 1
                 
 def volume_loader(ipimglist):
     '''
