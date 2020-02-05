@@ -191,6 +191,8 @@ def random_crop_batch_3D(ipimglist,
     each inputs. 
     '''
     
+    print('start random_crop_batch_3D')
+    
     # create the file list
     imglist = ipimglist[label]
     labellist = iplabellist[label]
@@ -213,11 +215,11 @@ def random_crop_batch_3D(ipimglist,
         # Incase there are labels bigger than 1
         label_tmp_array = label_tmp > 0 
        
-        img_tmp_array = img_tmp
-        label_tmp_array = label_tmp_array
-        
+        img_tmp_array = img_tmp.astype('uint8')
+        label_tmp_array = label_tmp_array.astype('uint8')
         
         print(label_tmp_array.shape)
+        
         # plt.imshow(img_tmp_array)
         # plt.imshow(label_tmp_array)
         
@@ -225,6 +227,8 @@ def random_crop_batch_3D(ipimglist,
         for i in range(crop_per_image):
             # crop the image by a give value
             imgs_crop = random_crop_3D([img_tmp_array, label_tmp_array], crop_size, seed=seed)
+            imgs_crop = imgs_crop.astype('uint8')
+            print(imgs_crop.dtype)
             img_crop = imgs_crop[0]
             label_crop = imgs_crop[1]
             # plt.imshow(label_crop)
@@ -233,23 +237,23 @@ def random_crop_batch_3D(ipimglist,
             
             
             loc_name = str(i+1)
+            print('test1')
             dir_checker(loc_name.zfill(4), os.path.join(opfolder, 'images', label))
             dir_checker(loc_name.zfill(4), os.path.join(opfolder, 'labels', label))
             
             for j in range(img_crop.shape[0]): 
                 # save image
-                pil_img_crop = Image.fromarray(img_crop[j])
-                pil_label_crop = Image.fromarray(label_crop[j])
+                pil_img_crop = Image.fromarray(img_crop[j], mode = 'L')
+                pil_label_crop = Image.fromarray(label_crop[j], mode = 'L')
 
                 id_name = str(j+1)
                 
                 pil_img_crop.save(os.path.join(opfolder, 'images', label, loc_name.zfill(4), id_name.zfill(4) + '.tif'))
-                pil_label_crop.save(os.path.join(opfolder, 'labels', label, loc_name.zfill(4), id_name.zfill(4) + '.tif'))
-
-            
+                pil_label_crop.save(os.path.join(opfolder, 'labels', label, loc_name.zfill(4), id_name.zfill(4) + '.tif'))            
 
             if seed is not None:
                 seed += 1
+            
                 
 def volume_loader(ipimglist):
     '''
