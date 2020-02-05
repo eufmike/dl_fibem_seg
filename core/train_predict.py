@@ -78,12 +78,12 @@ def stack_predict_v2(input_imgpath,
         if rescale is not None:  
             img_tmp = img_tmp * rescale 
             
-        # predict big region
+        # predict main region
         img_tmp_crop = img_tmp[:img_tmp.shape[0]//size_factor * size_factor, :img_tmp.shape[1]//size_factor * size_factor]
         img_tmp_crop = img_tmp_crop.reshape(1, img_tmp_crop.shape[0], img_tmp_crop.shape[1], 1)
-        img_tmp_crop_predict = model.predict(img_tmp_crop, batch_size = 16)
-        img_tmp_crop_predict = img_tmp_crop_predict.reshape(img_tmp_crop_predict.shape[1],
-                                                            img_tmp_crop_predict.shape[2])
+        img_tmp_crop_predict_main = model.predict(img_tmp_crop, batch_size = 16)
+        img_tmp_crop_predict_main = img_tmp_crop_predict_main.reshape(img_tmp_crop_predict_main.shape[1],
+                                                            img_tmp_crop_predict_main.shape[2])
         
         ## predict the edge
         edge_patch = crop_to_patch(img_tmp, cropidx, (IMG_HEIGHT, IMG_WIDTH))
@@ -93,16 +93,26 @@ def stack_predict_v2(input_imgpath,
         
         edge_patch_re_predict = model.predict(edge_patch_re, batch_size = 16)
         
-        outputimg = construct_from_patch(edge_patch_re_predict, 
+        img_tmp_crop_predict_edge = construct_from_patch(edge_patch_re_predict, 
                                          cropidx, 
                                          target_size = (img_height, img_width))
+                
+        # average
+        outputimg_stack = np.full((2, img_height, img_width), np.nan)
+        outputimg_stack[0, :img_tmp_crop_predict_main.shape[0], :img_tmp_crop_predict_main.shape[1]] = img_tmp_crop_predict_main
         
-        outputimg[:img_tmp_crop.shape[1], :img_tmp_crop.shape[2]] = img_tmp_crop_predict
-                                              
+        img_tmp_crop_predict_edge_na = img_tmp_crop_predict_edge
+        img_tmp_crop_predict_edge_na[:img_height - IMG_HEIGHT, :img_width - IMG_WIDTH] = np.nan
+        outputimg_stack[1, :, :] = img_tmp_crop_predict_edge
+        
+        outputimg = np.nanmean(outputimg_stack, axis = 0)
+        
+        
         # threshold the image
         outputimg_T = outputimg > predict_threshold
         
         # save image
         outputimg_T_pillow = Image.fromarray(outputimg_T)
         outputimg_T_pillow.save(os.path.join(output_imgpath, os.path.basename(inputimg)))
+        
         
