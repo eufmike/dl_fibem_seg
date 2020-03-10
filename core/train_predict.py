@@ -107,9 +107,11 @@ def stack_predict_v2(input_imgpath,
         
         outputimg = np.nanmean(outputimg_stack, axis = 0)
         
+        # outputimg_T = outputimg
         
         # threshold the image
         outputimg_T = outputimg > predict_threshold
+        
         
         # save image
         outputimg_T_pillow = Image.fromarray(outputimg_T)

@@ -237,11 +237,7 @@ def random_crop_batch_3D(ipimglist,
             
             
             loc_name = str(i+1)
-<<<<<<< HEAD
-            print('test1')
-=======
-            
->>>>>>> 5cac7b92e9e926dcc15c0aedb1736bf12e885bfa
+
             dir_checker(loc_name.zfill(4), os.path.join(opfolder, 'images', label))
             dir_checker(loc_name.zfill(4), os.path.join(opfolder, 'labels', label))
             
@@ -253,11 +249,7 @@ def random_crop_batch_3D(ipimglist,
                 id_name = str(j+1)
                 
                 pil_img_crop.save(os.path.join(opfolder, 'images', label, loc_name.zfill(4), id_name.zfill(4) + '.tif'))
-<<<<<<< HEAD
-                pil_label_crop.save(os.path.join(opfolder, 'labels', label, loc_name.zfill(4), id_name.zfill(4) + '.tif'))            
-=======
                 pil_label_crop.save(os.path.join(opfolder, 'labels', label, loc_name.zfill(4), id_name.zfill(4) + '.tif'))
->>>>>>> 5cac7b92e9e926dcc15c0aedb1736bf12e885bfa
 
             if seed is not None:
                 seed += 1
